@@ -1,42 +1,55 @@
-import { Client, Pool, type PoolClient, type QueryResult } from 'pg';
-import { type DBConfig, DBError, type ObjectAny } from './types';
+import { Client, Pool, type PoolClient, type QueryResult } from "pg";
+import { type DBConfig, DBError, type ObjectAny } from "./types";
 
-declare module 'pg' {
+declare module "pg" {
 	interface ClientBase {
 		[Symbol.dispose](): void;
 	}
 }
 
 Client.prototype[Symbol.dispose] = function () {
-	if ('release' in this) (this as PoolClient).release(true);
+	if ("release" in this) (this as PoolClient).release(true);
 };
 
 export let pool: Pool;
 
 export async function init_pool(conf: DBConfig) {
 	if (pool) return;
-	const { auth } = conf;
+	const { name, auth } = conf;
 	pool = new Pool({
-		host: auth.host,
-		port: auth.port,
-		database: auth.database,
-		user: auth.user,
-		password: auth.password,
+		host: auth?.host,
+		port: auth?.port,
+		database: auth?.database,
+		user: auth?.user,
+		password: auth?.password,
 		max: conf.max,
 	});
 
-	pool.on('connect', () => console.log(`Connected to db: ${pool.totalCount}`));
-	pool.on('remove', () => console.log(`Removed db connection: ${pool.totalCount}`));
+	pool.on("connect", () => console.log(`[${name} DB] new connection: ${pool.totalCount}`));
+	pool.on("remove", () => console.log(`[${name} DB] removed connection: ${pool.totalCount}`));
 
 	if (!conf.initial_script) return;
-	console.time('[S0n1c DB] Init');
-	const conn = await pool.connect();
+	console.time(`[${name} DB] Init`);
+	using conn = await pool.connect();
 	await query(conn, conf.initial_script);
-	console.timeEnd('[S0n1c DB] Init');
+	console.timeEnd(`[${name} DB] Init`);
 }
 
-export type { PoolClient } from 'pg';
+export type { PoolClient } from "pg";
 
+/**
+ * Run a query on the database.
+ * @example
+ * ```ts
+ * using conn = await pool.connect();
+ * const res = await query(conn, "select * from users where id = any($1)", [[1, 2, 3]]);
+ * ```
+ * @param conn - The connection to the database
+ * @param query - The query to run
+ * @param values - The values to pass to the query
+ * @returns The result of the query
+ * @throws {DBError} - If for some reason the query fails
+ */
 export async function query<T extends ObjectAny, V = unknown>(
 	conn: PoolClient,
 	query: string,
@@ -48,17 +61,30 @@ export async function query<T extends ObjectAny, V = unknown>(
 	} catch (e) {
 		console.error(e);
 		throw new DBError(
-			500,
-			`${e instanceof Error ? e.message : 'unknown error'}. ${
-				'position' in (e as Record<string, unknown>)
+			`${e instanceof Error ? e.message : "unknown error"}. ${
+				"position" in (e as Record<string, unknown>)
 					? `Error at position ${(e as Record<string, unknown>).position}`
-					: ''
+					: ""
 			}`,
 		);
 	}
 	return res.rows;
 }
 
+/**
+ * Run an insert query on the database.
+ * @example
+ * ```ts
+ * using conn = await pool.connect();
+ * const res = await insert(conn, "users", { name: "John Doe" });
+ * ```
+ * @param conn - The connection to the database
+ * @param table - The table to insert into
+ * @param data - The data to insert
+ * @param conflict - The columns to check for conflicts, if any
+ * @returns The inserted row
+ * @throws {DBError} - If for some reason the query fails and the row does not exist
+ */
 export async function insert<T extends ObjectAny, V extends ObjectAny>(
 	conn: PoolClient,
 	table: string,
@@ -67,26 +93,39 @@ export async function insert<T extends ObjectAny, V extends ObjectAny>(
 ): Promise<V> {
 	const keys = Object.keys(data);
 	const values = Object.values(data);
-	if (conflict?.length) {
-		values.push(...Object.keys(data).map((k) => data[k]));
-	}
+	if (conflict?.length) values.push(...Object.keys(data).map((k) => data[k]));
+
 	const res = await query<V>(
 		conn,
-		`insert into ${table} (${keys.join(', ')}) values (${keys.map((_, i) => `$${i + 1}`).join(', ')}) ${
+		`insert into ${table} (${keys.join(", ")}) values (${keys.map((_, i) => `$${i + 1}`).join(", ")}) ${
 			conflict?.length
-				? `on conflict (${conflict.join(', ')}) do update set ${Object.keys(data)
+				? `on conflict (${conflict.join(", ")}) do update set ${Object.keys(data)
 						.map((k, i) => `${k} = $${i + 1 + keys.length}`)
-						.join(', ')}`
-				: ''
+						.join(", ")}`
+				: ""
 		} returning *`,
 		values,
 	);
 
-	if (!res[0]) throw new DBError(500, 'No result');
+	if (!res[0]) throw new DBError("No result");
 
 	return res[0];
 }
 
+/**
+ * Run an update query on the database.
+ * @example
+ * ```ts
+ * using conn = await pool.connect();
+ * const res = await update(conn, "users", { id: 1 }, { name: "John Doe" });
+ * ```
+ * @param conn - The connection to the database
+ * @param table - The table to update
+ * @param where - The where clause
+ * @param data - The data to update
+ * @returns The updated row
+ * @throws {DBError} - If for some reason the query fails and the row does not exist
+ */
 export async function update<
 	T extends ObjectAny,
 	Data extends Record<string, unknown>,
@@ -105,17 +144,28 @@ export async function update<
 	const where_values = Object.values(where);
 	const res = await query<V>(
 		conn,
-		`update ${table} set ${keys.map((k, i) => `${k} = $${i + 1}`).join(', ')} where ${where_keys
+		`update ${table} set ${keys.map((k, i) => `${k} = $${i + 1}`).join(", ")} where ${where_keys
 			.map((k, i) => `${k} = $${i + 1 + keys.length}`)
-			.join(' and ')} returning *`,
+			.join(" and ")} returning *`,
 		[...values, ...where_values],
 	);
 
-	if (!res[0]) throw new DBError(500, 'No result');
+	if (!res[0]) throw new DBError("No result");
 
 	return res[0];
 }
 
+/**
+ * Run a remove query on the database.
+ * @example
+ * ```ts
+ * using conn = await pool.connect();
+ * await remove(conn, "users", { id: 1 });
+ * ```
+ * @param conn - The connection to the database
+ * @param table - The table to remove from
+ * @param where - The where clause
+ */
 export async function remove<T extends ObjectAny>(
 	conn: PoolClient,
 	table: string,
@@ -125,5 +175,7 @@ export async function remove<T extends ObjectAny>(
 ): Promise<void> {
 	const keys = Object.keys(where);
 	const values = Object.values(where);
-	await query(conn, `delete from ${table} where ${keys.map((k, i) => `${k} = $${i + 1}`).join(' and ')}`, values);
+	await query(conn, `delete from ${table} where ${keys.map((k, i) => `${k} = $${i + 1}`).join(" and ")}`, values);
 }
+
+export type * from "./types";
