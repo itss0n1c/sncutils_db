@@ -1,23 +1,42 @@
 {
 	"name": "@sncutils/db",
-	"version": "1.0.0",
+	"description": "Setup and utilize postgresql database with ease.",
+	"version": "1.1.0",
 	"main": "./dist/index.js",
+	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
-	"license": "MIT",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"require": "./dist/index.js"
+		}
+	},
+	"license": "GPL-3.0-only",
 	"type": "module",
 	"files": ["dist"],
 	"scripts": {
-		"build": "./build.sh"
+		"build:lib": "bun run build.ts",
+		"build:docs": "typedoc --options typedoc.json",
+		"build": "bun build:lib && bun build:docs"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
-		"@types/bun": "1.1.14",
-		"@types/pg": "^8.11.10",
-		"@types/pg-format": "^1.0.5",
-		"typescript": "^5.7.2"
+		"@types/bun": "1.2.4",
+		"typedoc-github-theme": "0.2.1",
+		"typescript": "5.8.2"
 	},
 	"dependencies": {
-		"pg": "^8.13.1",
-		"pg-format": "^1.0.4"
-	}
+		"@types/pg": "8.11.11",
+		"@types/pg-format": "1.0.5",
+		"pg": "8.13.3",
+		"pg-format": "1.0.4"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+ssh://git@github.com/itss0n1c/sncutils_db.git"
+	},
+	"bugs": {
+		"url": "https://github.com/itss0n1c/sncutils_db/issues"
+	},
+	"homepage": "https://s0n1c.ca/sncutils_db"
 }

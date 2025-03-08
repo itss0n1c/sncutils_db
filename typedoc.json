@@ -1,0 +1,16 @@
+{
+	"entryPoints": ["lib/index.ts"],
+	"out": "docs",
+	"plugin": ["typedoc-github-theme"],
+	"excludeExternals": true,
+	"externalSymbolLinkMappings": {
+		"@types/pg": {
+			"*": "https://node-postgres.com/"
+		}
+	},
+	"navigationLinks": {
+		"GitHub": "https://github.com/itss0n1c/sncutils/db",
+		"S0n1c": "https://s0n1c.ca"
+	},
+	"sort": ["documents-first", "kind"]
+}
