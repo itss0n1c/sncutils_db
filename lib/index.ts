@@ -1,4 +1,5 @@
-import { Client, Pool, type PoolClient, type QueryResult } from "pg";
+// import { Client, Pool, type PoolClient, type QueryResult } from "pg";
+import pg from "pg";
 import { type DBConfig, DBError, type ObjectAny } from "./types";
 
 declare module "pg" {
@@ -7,16 +8,16 @@ declare module "pg" {
 	}
 }
 
-Client.prototype[Symbol.dispose] = function () {
-	if ("release" in this) (this as PoolClient).release(true);
+pg.Client.prototype[Symbol.dispose] = function () {
+	if ("release" in this) (this as pg.PoolClient).release(true);
 };
 
-export let pool: Pool;
+export let pool: pg.Pool;
 
 export async function init_pool(conf: DBConfig) {
 	if (pool) return;
 	const { name, auth } = conf;
-	pool = new Pool({
+	pool = new pg.Pool({
 		host: auth?.host,
 		port: auth?.port,
 		database: auth?.database,
@@ -51,11 +52,11 @@ export type { PoolClient } from "pg";
  * @throws {DBError} - If for some reason the query fails
  */
 export async function query<T extends ObjectAny, V = unknown>(
-	conn: PoolClient,
+	conn: pg.PoolClient,
 	query: string,
 	values: Array<V> = [],
 ): Promise<T[]> {
-	let res: QueryResult<T>;
+	let res: pg.QueryResult<T>;
 	try {
 		res = await conn.query<T, typeof values>(query, values);
 	} catch (e) {
@@ -86,7 +87,7 @@ export async function query<T extends ObjectAny, V = unknown>(
  * @throws {DBError} - If for some reason the query fails and the row does not exist
  */
 export async function insert<T extends ObjectAny, V extends ObjectAny>(
-	conn: PoolClient,
+	conn: pg.PoolClient,
 	table: string,
 	data: T,
 	conflict?: Array<keyof T>,
@@ -131,7 +132,7 @@ export async function update<
 	Data extends Record<string, unknown>,
 	V extends Record<string, unknown>,
 >(
-	conn: PoolClient,
+	conn: pg.PoolClient,
 	table: string,
 	where: {
 		[K in keyof T]: T[K];
@@ -167,7 +168,7 @@ export async function update<
  * @param where - The where clause
  */
 export async function remove<T extends ObjectAny>(
-	conn: PoolClient,
+	conn: pg.PoolClient,
 	table: string,
 	where: {
 		[K in keyof T]?: T[K];

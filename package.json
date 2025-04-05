@@ -1,7 +1,7 @@
 {
 	"name": "@sncutils/db",
 	"description": "Setup and utilize postgresql database with ease.",
-	"version": "1.1.0",
+	"version": "1.1.1",
 	"main": "./dist/index.js",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
@@ -21,14 +21,14 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "1.9.4",
-		"@types/bun": "1.2.4",
+		"@types/bun": "1.2.8",
 		"typedoc-github-theme": "0.2.1",
-		"typescript": "5.8.2"
+		"typescript": "5.8.3"
 	},
 	"dependencies": {
 		"@types/pg": "8.11.11",
 		"@types/pg-format": "1.0.5",
-		"pg": "8.13.3",
+		"pg": "8.14.1",
 		"pg-format": "1.0.4"
 	},
 	"repository": {
