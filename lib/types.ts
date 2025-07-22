@@ -1,7 +1,7 @@
-export class DBError extends Error {
+export class SNCDBError extends Error {
 	constructor(message: string) {
 		super(message);
-		this.name = "DBError";
+		this.name = "SNCDBError";
 	}
 }
 
@@ -9,7 +9,7 @@ export class DBError extends Error {
  * options for the database connection.
  * authentication can alternatively be provided via environment variables, see {@link https://www.postgresql.org/docs/9.1/libpq-envars.html}
  */
-export interface DBConfigAuth {
+export interface SNCDBConfigAuth {
 	/** The host of the database */
 	host?: string;
 	/** The port of the database */
@@ -22,11 +22,11 @@ export interface DBConfigAuth {
 	password?: string | (() => string | Promise<string>);
 }
 
-export interface DBConfig {
+export interface SNCDBConfig {
 	/** The name of the database, used for logging */
 	name: string;
 	/** The authentication details for the database */
-	auth?: DBConfigAuth;
+	auth?: SNCDBConfigAuth;
 	/** The maximum number of connections to the database */
 	max?: number;
 	/** The initial script to run when connecting to the database */
@@ -35,4 +35,4 @@ export interface DBConfig {
 
 /** a generic object where the values can be anything */
 // biome-ignore lint/suspicious/noExplicitAny: an object where the values can be anything
-export type ObjectAny = Record<string, any>;
+export type SNCObjectAny = Record<string, any>;

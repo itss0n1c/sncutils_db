@@ -1,6 +1,5 @@
-// import { Client, Pool, type PoolClient, type QueryResult } from "pg";
 import pg from "pg";
-import { type DBConfig, DBError, type ObjectAny } from "./types";
+import { type SNCDBConfig, SNCDBError, type SNCObjectAny } from "./types";
 
 declare module "pg" {
 	interface ClientBase {
@@ -14,7 +13,7 @@ pg.Client.prototype[Symbol.dispose] = function () {
 
 export let pool: pg.Pool;
 
-export async function init_pool(conf: DBConfig) {
+export async function init_pool(conf: SNCDBConfig) {
 	if (pool) return;
 	const { name, auth } = conf;
 	pool = new pg.Pool({
@@ -49,9 +48,9 @@ export type { PoolClient } from "pg";
  * @param query - The query to run
  * @param values - The values to pass to the query
  * @returns The result of the query
- * @throws {DBError} - If for some reason the query fails
+ * @throws {SNCDBError} - If for some reason the query fails
  */
-export async function query<T extends ObjectAny, V = unknown>(
+export async function query<T extends SNCObjectAny, V = unknown>(
 	conn: pg.PoolClient,
 	query: string,
 	values: Array<V> = [],
@@ -61,7 +60,7 @@ export async function query<T extends ObjectAny, V = unknown>(
 		res = await conn.query<T, typeof values>(query, values);
 	} catch (e) {
 		console.error(e);
-		throw new DBError(
+		throw new SNCDBError(
 			`${e instanceof Error ? e.message : "unknown error"}. ${
 				"position" in (e as Record<string, unknown>)
 					? `Error at position ${(e as Record<string, unknown>).position}`
@@ -84,9 +83,9 @@ export async function query<T extends ObjectAny, V = unknown>(
  * @param data - The data to insert
  * @param conflict - The columns to check for conflicts, if any
  * @returns The inserted row
- * @throws {DBError} - If for some reason the query fails and the row does not exist
+ * @throws {SNCDBError} - If for some reason the query fails and the row does not exist
  */
-export async function insert<T extends ObjectAny, V extends ObjectAny>(
+export async function insert<T extends SNCObjectAny, V extends SNCObjectAny>(
 	conn: pg.PoolClient,
 	table: string,
 	data: T,
@@ -108,7 +107,7 @@ export async function insert<T extends ObjectAny, V extends ObjectAny>(
 		values,
 	);
 
-	if (!res[0]) throw new DBError("No result");
+	if (!res[0]) throw new SNCDBError("No result");
 
 	return res[0];
 }
@@ -125,10 +124,10 @@ export async function insert<T extends ObjectAny, V extends ObjectAny>(
  * @param where - The where clause
  * @param data - The data to update
  * @returns The updated row
- * @throws {DBError} - If for some reason the query fails and the row does not exist
+ * @throws {SNCDBError} - If for some reason the query fails and the row does not exist
  */
 export async function update<
-	T extends ObjectAny,
+	T extends SNCObjectAny,
 	Data extends Record<string, unknown>,
 	V extends Record<string, unknown>,
 >(
@@ -151,7 +150,7 @@ export async function update<
 		[...values, ...where_values],
 	);
 
-	if (!res[0]) throw new DBError("No result");
+	if (!res[0]) throw new SNCDBError("No result");
 
 	return res[0];
 }
@@ -167,7 +166,7 @@ export async function update<
  * @param table - The table to remove from
  * @param where - The where clause
  */
-export async function remove<T extends ObjectAny>(
+export async function remove<T extends SNCObjectAny>(
 	conn: pg.PoolClient,
 	table: string,
 	where: {
@@ -179,4 +178,4 @@ export async function remove<T extends ObjectAny>(
 	await query(conn, `delete from ${table} where ${keys.map((k, i) => `${k} = $${i + 1}`).join(" and ")}`, values);
 }
 
-export type * from "./types";
+export * from "./types";
